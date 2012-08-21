@@ -123,7 +123,6 @@ public class JaxbUtil {
      * compatible to the new format
      */
     public static class NoSourceAndNamespaceFilter extends XMLFilterImpl {
-    	
         private static final InputSource EMPTY_INPUT_SOURCE = new InputSource(new ByteArrayInputStream(new byte[0]));
 
         public NoSourceAndNamespaceFilter(XMLReader xmlReader) {
@@ -137,12 +136,12 @@ public class JaxbUtil {
 
         @Override
         public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
-        	super.startElement(FeaturesNamespaces.URI_CURRENT, localName, qName, atts);
+            super.startElement(FeaturesNamespaces.URI_CURRENT, localName, qName, atts);
         }
 
         @Override
         public void endElement(String uri, String localName, String qName) throws SAXException {
-        	super.endElement(FeaturesNamespaces.URI_CURRENT, localName, qName);
+            super.endElement(FeaturesNamespaces.URI_CURRENT, localName, qName);
         }
         
     }

@@ -150,14 +150,12 @@ public class GenerateDescriptorMojo extends AbstractLogEnabled implements Mojo {
 
     /**
      * Installation mode. If present, generate "feature.install" attribute:
-     * 
-     * <a href="https://github.com/apache/karaf/blob/trunk/features/core/src/main/resources/org/apache/karaf/features/karaf-features-1.1.0.xsd">
-     * Installation mode.
-     * </a>
+     *
+     * <a href="http://karaf.apache.org/xmlns/features/v1.1.0">Installation mode</a>
      *
      * Can be either manual or auto. Specifies whether the feature should be automatically installed when
-     * dropped inside the deploy folder. Note: This attribute doesn't affect feature descriptors that are installed from the
-     * command line or as part of the org.apache.karaf.features.cfg.
+     * dropped inside the deploy folder. Note: this attribute doesn't affect feature descriptors that are installed
+     * from the feature:install command or as part of the etc/org.apache.karaf.features.cfg file.
      *
      * @parameter
      */

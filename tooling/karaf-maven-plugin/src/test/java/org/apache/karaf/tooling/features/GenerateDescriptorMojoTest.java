@@ -17,7 +17,6 @@
  * under the License.
  */
 
-
 package org.apache.karaf.tooling.features;
 
 import static org.junit.Assert.*;
@@ -31,8 +30,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
 
 import org.apache.karaf.features.internal.FeaturesNamespaces;
-import org.apache.karaf.features.internal.model.Feature;
 import org.apache.karaf.features.internal.model.Features;
+import org.apache.karaf.features.internal.model.Feature;
 import org.apache.karaf.features.internal.model.JaxbUtil;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -41,42 +40,39 @@ import org.xml.sax.SAXException;
 public class GenerateDescriptorMojoTest {
 
     @Test
-    public void testReadXml0() throws JAXBException, SAXException, ParserConfigurationException, XMLStreamException {
-    	
+    public void testReadXml100() throws JAXBException, SAXException, ParserConfigurationException, XMLStreamException {
+
         InputStream in = getClass().getClassLoader().getResourceAsStream("input-features-1.0.0.xml");
-        
+
         Features featuresRoot = JaxbUtil.unmarshal(in, false);
 
         assertEquals(featuresRoot.getRepository().size(), 1);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        
+
         JaxbUtil.marshal(featuresRoot, baos);
-        
+
         String text = new String(baos.toByteArray());
-        
+
         assertTrue(text.contains("repository"));
-        
+
         assertTrue(text.contains(FeaturesNamespaces.URI_CURRENT));
-        
     }
-    
+
     @Test
     public void testReadXml1() throws Exception {
 
         InputStream in = getClass().getClassLoader().getResourceAsStream("input-features-1.1.0.xml");
-        
+
         Features featuresRoot = JaxbUtil.unmarshal(in, false);
-        
+
         List<Feature> featuresList = featuresRoot.getFeature();
-        
+
         assertEquals(featuresList.size(), 1);
-        
+
         Feature feature = featuresList.get(0);
 
         assertEquals(feature.getInstall(), "auto");
-
-
     }
-    
+
 }

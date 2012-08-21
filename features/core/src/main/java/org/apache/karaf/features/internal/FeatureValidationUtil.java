@@ -39,7 +39,7 @@ import org.xml.sax.SAXException;
  */
 public class FeatureValidationUtil {
 
-    private static final Logger log = LoggerFactory.getLogger(FeatureValidationUtil.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FeatureValidationUtil.class);
 
     /**
      * Runs schema validation.
@@ -53,7 +53,7 @@ public class FeatureValidationUtil {
         QName name = new QName(doc.getDocumentElement().getNamespaceURI(), doc.getDocumentElement().getLocalName());
 
         if (FeaturesNamespaces.FEATURES_0_0_0.equals(name)) {
-            log.warn("Old style feature file without namespace found (URI: {}). This format is deprecated and support for it will soon be removed", uri);
+            LOGGER.warn("Old style feature file without namespace found (URI: {}). This format is deprecated and support for it will soon be removed", uri);
             return;
         } else if (FeaturesNamespaces.FEATURES_1_0_0.equals(name)) {
             validate(doc, "/org/apache/karaf/features/karaf-features-1.0.0.xsd");
