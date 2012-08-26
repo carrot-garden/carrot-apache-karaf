@@ -21,4 +21,3 @@
 package org.apache.karaf.features.internal.model;
 
 import org.apache.karaf.features.FeaturesNamespaces;
-
