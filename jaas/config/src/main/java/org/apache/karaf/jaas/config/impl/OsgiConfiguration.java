@@ -16,20 +16,17 @@
  */
 package org.apache.karaf.jaas.config.impl;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
 import org.apache.karaf.jaas.config.JaasRealm;
+import org.apache.karaf.util.collections.CopyOnWriteArrayIdentityList;
 
 public class OsgiConfiguration extends Configuration {
 
-    private final List<JaasRealm> realms = new CopyOnWriteArrayList<JaasRealm>();
+    private final List<JaasRealm> realms = new CopyOnWriteArrayIdentityList<JaasRealm>();
 
     public void init() {
         Configuration.setConfiguration(this);
@@ -41,11 +38,15 @@ public class OsgiConfiguration extends Configuration {
     }
 
     public void register(JaasRealm realm, Map<String,?> properties) {
-        realms.add(realm);
+        if (realm != null) {
+            realms.add(realm);
+        }
     }
 
     public void unregister(JaasRealm realm, Map<String,?> properties) {
-        realms.remove(realm);
+        if (realm != null) {
+            realms.remove(realm);
+        }
     }
 
     public AppConfigurationEntry[] getAppConfigurationEntry(String name) {

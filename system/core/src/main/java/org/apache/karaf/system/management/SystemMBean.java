@@ -50,4 +50,25 @@ public interface SystemMBean {
      */
     void setFrameworkDebug(boolean debug);
 
+    /**
+     * Get the current Karaf instance name.
+     *
+     * @return the current Karaf instance name.
+     */
+    String getName();
+
+    /**
+     * Change Karaf instance name.
+     *
+     * @param name the new Karaf instance name.
+     */
+    void setName(String name) throws Exception;
+
+    /**
+     * Get the version of the current Karaf instance.
+     *
+     * @return the current Karaf instance version.
+     */
+    String getVersion();
+
 }

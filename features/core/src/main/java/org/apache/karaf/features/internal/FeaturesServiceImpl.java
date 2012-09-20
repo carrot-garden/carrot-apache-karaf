@@ -46,7 +46,6 @@ import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -60,6 +59,7 @@ import org.apache.felix.utils.manifest.Parser;
 import org.apache.felix.utils.version.VersionRange;
 import org.apache.felix.utils.version.VersionTable;
 import org.apache.karaf.features.BundleInfo;
+import org.apache.karaf.features.Conditional;
 import org.apache.karaf.features.ConfigFileInfo;
 import org.apache.karaf.features.Dependency;
 import org.apache.karaf.features.Feature;
@@ -70,10 +70,12 @@ import org.apache.karaf.features.Repository;
 import org.apache.karaf.features.RepositoryEvent;
 import org.apache.karaf.features.Resolver;
 import org.apache.karaf.region.persist.RegionsPersistence;
+import org.apache.karaf.util.collections.CopyOnWriteArrayIdentityList;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
+import org.osgi.framework.Filter;
 import org.osgi.framework.FrameworkEvent;
 import org.osgi.framework.FrameworkListener;
 import org.osgi.framework.FrameworkUtil;
@@ -83,6 +85,7 @@ import org.osgi.framework.startlevel.BundleStartLevel;
 import org.osgi.framework.wiring.FrameworkWiring;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
+import org.osgi.service.url.URLStreamHandlerService;
 import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,14 +114,12 @@ public class FeaturesServiceImpl implements FeaturesService, FrameworkListener {
     private Map<Feature, Set<Long>> installed = new HashMap<Feature, Set<Long>>();
     private String boot;
     AtomicBoolean bootFeaturesInstalled = new AtomicBoolean();
-    private List<FeaturesListener> listeners = new CopyOnWriteArrayList<FeaturesListener>();
-    private Queue<RegionsPersistence> regionsPersistenceQueue = new LinkedList<RegionsPersistence>();
-    private CountDownLatch regionsPersistenceLatch = new CountDownLatch(1);
+    private List<FeaturesListener> listeners = new CopyOnWriteArrayIdentityList<FeaturesListener>();
     private ThreadLocal<Repository> repo = new ThreadLocal<Repository>();
     private EventAdminListener eventAdminListener;
     private final Object refreshLock = new Object();
     private long refreshTimeout = 5000;
-    private long regionsPersistenceTimeout = 5000;
+    private RegionsPersistence regionsPersistence;
 
     public FeaturesServiceImpl() {
     }
@@ -155,6 +156,14 @@ public class FeaturesServiceImpl implements FeaturesService, FrameworkListener {
         this.refreshTimeout = refreshTimeout;
     }
 
+    public RegionsPersistence getRegionsPersistence() {
+        return regionsPersistence;
+    }
+
+    public void setRegionsPersistence(RegionsPersistence regionsPersistence) {
+        this.regionsPersistence = regionsPersistence;
+    }
+
     public void registerListener(FeaturesListener listener) {
         listeners.add(listener);
         for (Repository repository : listRepositories()) {
@@ -167,33 +176,6 @@ public class FeaturesServiceImpl implements FeaturesService, FrameworkListener {
 
     public void unregisterListener(FeaturesListener listener) {
         listeners.remove(listener);
-    }
-
-    /**
-     * Returns a RegionsPersistence service.
-     * @param timeout
-     * @return
-     */
-    protected RegionsPersistence getRegionsPersistence(long timeout) {
-        if (!regionsPersistenceQueue.isEmpty()) {
-            return regionsPersistenceQueue.peek();
-        } else {
-            try {
-                regionsPersistenceLatch.await(timeout, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                LOGGER.warn("Interrupted while waittng for RegionsPersistence service",e);
-            }
-            return regionsPersistenceQueue.peek();
-        }
-    }
-
-    public void registerRegionsPersistence(RegionsPersistence regionsPersistence) {
-        regionsPersistenceQueue.add(regionsPersistence);
-        regionsPersistenceLatch.countDown();
-    }
-
-    public void unregisterRegionsPersistence(RegionsPersistence regionsPersistence) {
-        regionsPersistenceQueue.remove(regionsPersistence);
     }
 
     public void setUrls(String uris) throws URISyntaxException {
@@ -448,6 +430,20 @@ public class FeaturesServiceImpl implements FeaturesService, FrameworkListener {
                 InstallationState s = new InstallationState();
             	try {
                     doInstallFeature(s, f, verbose);
+                    doInstallFeatureConditionals(s, f, verbose);
+                    state.bundleInfos.putAll(s.bundleInfos);
+                    state.bundles.addAll(s.bundles);
+                    state.features.putAll(s.features);
+                    state.installed.addAll(s.installed);
+
+                    //Check if current feature satisfies the conditionals of existing features
+                    for (Feature installedFeautre : listInstalledFeatures()) {
+                        for (Conditional conditional : installedFeautre.getConditional()) {
+                            if (dependenciesSatisfied(conditional.getCondition(), state)) {
+                                doInstallFeatureConditionals(s, installedFeautre, verbose);
+                            }
+                        }
+                    }
                     state.bundleInfos.putAll(s.bundleInfos);
                     state.bundles.addAll(s.bundles);
                     state.features.putAll(s.features);
@@ -492,6 +488,7 @@ public class FeaturesServiceImpl implements FeaturesService, FrameworkListener {
             }
             // Start all bundles
             for (Bundle b : state.bundles) {
+                LOGGER.info("Starting bundle: {}", b.getSymbolicName());
                 startBundle(state, b);
             }
             // Clean up for batch
@@ -586,7 +583,7 @@ public class FeaturesServiceImpl implements FeaturesService, FrameworkListener {
 
     protected static class InstallationState {
         final Set<Bundle> installed = new HashSet<Bundle>();
-        final List<Bundle> bundles = new ArrayList<Bundle>();
+        final Set<Bundle> bundles = new HashSet<Bundle>();
         final Map<Long, BundleInfo> bundleInfos = new HashMap<Long, BundleInfo>();
         final Map<Feature, Set<Long>> features = new HashMap<Feature, Set<Long>>();
     }
@@ -608,7 +605,7 @@ public class FeaturesServiceImpl implements FeaturesService, FrameworkListener {
             state.bundleInfos.put(b.getBundleId(), bInfo);
             String region = feature.getRegion();
             if (region != null && state.installed.contains(b)) {
-                RegionsPersistence regionsPersistence = getRegionsPersistence(regionsPersistenceTimeout);
+                RegionsPersistence regionsPersistence = getRegionsPersistence();
                 if (regionsPersistence != null) {
                     regionsPersistence.install(b, region);
                 } else {
@@ -619,34 +616,25 @@ public class FeaturesServiceImpl implements FeaturesService, FrameworkListener {
         state.features.put(feature, bundles);
     }
 
+    protected void doInstallFeatureConditionals(InstallationState state, Feature feature,  boolean verbose) throws Exception {
+        InstallationState failure = new InstallationState();
+        //Check conditions of the current feature.
+        for (Conditional conditional : feature.getConditional()) {
+
+            if (dependenciesSatisfied(conditional.getCondition(), state)) {
+                InstallationState s = new InstallationState();
+                doInstallFeature(s, conditional.asFeature(feature.getName(), feature.getVersion()), verbose);
+                state.bundleInfos.putAll(s.bundleInfos);
+                state.bundles.addAll(s.bundles);
+                state.features.putAll(s.features);
+                state.installed.addAll(s.installed);
+            }
+        }
+    }
+
     private void installFeatureDependency(Dependency dependency, InstallationState state, boolean verbose)
             throws Exception {
-        VersionRange range = org.apache.karaf.features.internal.model.Feature.DEFAULT_VERSION.equals(dependency.getVersion())
-                    ? VersionRange.ANY_VERSION : new VersionRange(dependency.getVersion(), true, true);
-        Feature fi = null;
-        for (Feature f : installed.keySet()) {
-            if (f.getName().equals(dependency.getName())) {
-                Version v = VersionTable.getVersion(f.getVersion());
-                if (range.contains(v)) {
-                    if (fi == null || VersionTable.getVersion(fi.getVersion()).compareTo(v) < 0) {
-                        fi = f;
-                    }
-                }
-            }
-        }
-        if (fi == null) {
-            Map<String, Feature> avail = getFeatures().get(dependency.getName());
-            if (avail != null) {
-                for (Feature f : avail.values()) {
-                    Version v = VersionTable.getVersion(f.getVersion());
-                    if (range.contains(v)) {
-                        if (fi == null || VersionTable.getVersion(fi.getVersion()).compareTo(v) < 0) {
-                            fi = f;
-                        }
-                    }
-                }
-            }
-        }
+        Feature fi = getFeatureForDependency(dependency);
         if (fi == null) {
             throw new Exception("No feature named '" + dependency.getName()
                     + "' with version '" + dependency.getVersion() + "' available");
@@ -844,7 +832,10 @@ public class FeaturesServiceImpl implements FeaturesService, FrameworkListener {
         String bundleLocation = bundleInfo.getLocation();
         LOGGER.debug("Checking " + bundleLocation);
         try {
-            is = new BufferedInputStream(new URL(bundleLocation).openStream());
+            String protocol = bundleLocation.substring(0, bundleLocation.indexOf(":"));
+            waitForUrlHandler(protocol);
+            URL bundleUrl = new URL(bundleLocation);
+            is = new BufferedInputStream(bundleUrl.openStream());
         } catch (RuntimeException e) {
             LOGGER.error(e.getMessage());
             throw e;
@@ -1002,6 +993,12 @@ public class FeaturesServiceImpl implements FeaturesService, FrameworkListener {
         // and remove all those who will still be in use.
         // This gives this list of bundles to uninstall.
         Set<Long> bundles = installed.remove(feature);
+
+        //Also remove bundles installed as conditionals
+        for (Conditional conditional : feature.getConditional()) {
+            bundles.addAll(installed.remove(conditional.asFeature(feature.getName(),feature.getVersion())));
+        }
+
         for (Set<Long> b : installed.values()) {
             bundles.removeAll(b);
         }
@@ -1472,5 +1469,80 @@ public class FeaturesServiceImpl implements FeaturesService, FrameworkListener {
             }
         }
         return buffer.toString();
+    }
+
+    /**
+     * Returns the {@link Feature} that matches the {@link Dependency}.
+     * @param dependency
+     * @return
+     * @throws Exception
+     */
+    private Feature getFeatureForDependency(Dependency dependency) throws Exception {
+        VersionRange range = org.apache.karaf.features.internal.model.Feature.DEFAULT_VERSION.equals(dependency.getVersion())
+                ? VersionRange.ANY_VERSION : new VersionRange(dependency.getVersion(), true, true);
+        Feature fi = null;
+        for (Feature f : installed.keySet()) {
+            if (f.getName().equals(dependency.getName())) {
+                Version v = VersionTable.getVersion(f.getVersion());
+                if (range.contains(v)) {
+                    if (fi == null || VersionTable.getVersion(fi.getVersion()).compareTo(v) < 0) {
+                        fi = f;
+                    }
+                }
+            }
+        }
+        if (fi == null) {
+            Map<String, Feature> avail = getFeatures().get(dependency.getName());
+            if (avail != null) {
+                for (Feature f : avail.values()) {
+                    Version v = VersionTable.getVersion(f.getVersion());
+                    if (range.contains(v)) {
+                        if (fi == null || VersionTable.getVersion(fi.getVersion()).compareTo(v) < 0) {
+                            fi = f;
+                        }
+                    }
+                }
+            }
+        }
+        return fi;
+    }
+
+    /**
+     * Estimates if the {@link List} of {@link Dependency} is satisfied.
+     * The method will look into {@link Feature}s that are already installed or now being installed (if {@link InstallationState} is provided (not null)).
+     * @param dependencies
+     * @param state
+     * @return
+     */
+    private boolean dependenciesSatisfied(List<? extends Dependency> dependencies, InstallationState state) throws Exception {
+       boolean satisfied = true;
+       for (Dependency dep : dependencies) {
+           Feature f = getFeatureForDependency(dep);
+           if (f != null && !isInstalled(f) && (state != null && !state.features.keySet().contains(f))) {
+               satisfied = false;
+           }
+       }
+       return satisfied;
+    }
+
+    /**
+     * Will wait for the {@link URLStreamHandlerService} service for the specified protocol to be registered.
+     * @param protocol
+     */
+    private void waitForUrlHandler(String protocol) {
+        try {
+            Filter filter = bundleContext.createFilter("(&(" + Constants.OBJECTCLASS + "=" + URLStreamHandlerService.class.getName() + ")(url.handler.protocol=" + protocol + "))");
+            ServiceTracker urlHandlerTracker = new ServiceTracker(bundleContext, filter, null);
+            try {
+                urlHandlerTracker.open();
+                urlHandlerTracker.waitForService(30000);
+            } catch (InterruptedException e) {
+                LOGGER.debug("Interrupted while waiting for URL handler for protocol {}.", protocol);
+            } finally {
+                urlHandlerTracker.close();
+            }
+        } catch (Exception ex) {
+            LOGGER.error("Error creating service tracker.", ex);
+        }
     }
 }
