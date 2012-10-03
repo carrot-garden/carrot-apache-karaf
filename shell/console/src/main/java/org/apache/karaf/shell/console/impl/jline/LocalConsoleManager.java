@@ -21,13 +21,12 @@ package org.apache.karaf.shell.console.impl.jline;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.security.KeyPair;
 import java.util.Hashtable;
-
 import javax.security.auth.Subject;
 
 import jline.Terminal;
-
 import org.apache.felix.service.command.CommandProcessor;
 import org.apache.karaf.jaas.boot.principal.UserPrincipal;
 import org.apache.karaf.shell.console.Console;
@@ -86,7 +85,14 @@ public class LocalConsoleManager {
             }
         };
         String agentId = startAgent("karaf");
-        this.console = consoleFactory.createLocal(this.commandProcessor, terminal, callback);
+        String ctype = System.getenv("LC_CTYPE");
+        String encoding = ctype;
+        if (encoding != null && encoding.indexOf('.') > 0) {
+            encoding = encoding.substring(encoding.indexOf('.') + 1);
+        } else {
+            encoding = System.getProperty("input.encoding", Charset.defaultCharset().name());
+        }
+        this.console = consoleFactory.createLocal(this.commandProcessor, terminal, encoding, callback);
         this.console.getSession().put(SshAgent.SSH_AUTHSOCKET_ENV_NAME, agentId);
         
         Runnable consoleStarter = new Runnable() {
@@ -106,12 +112,7 @@ public class LocalConsoleManager {
 
     protected String startAgent(String user) {
         try {
-            local = new AgentImpl();
-            URL url = bundleContext.getBundle().getResource("karaf.key");
-            InputStream is = url.openStream();
-            ObjectInputStream r = new ObjectInputStream(is);
-            KeyPair keyPair = (KeyPair) r.readObject();
-            local.addIdentity(keyPair, "karaf");
+            local = SshAgentLoader.load(bundleContext);
             String agentId = "local:" + user;
             Hashtable properties = new Hashtable();
             properties.put("id", agentId);
@@ -132,6 +133,23 @@ public class LocalConsoleManager {
         // osgi framework isn't stopped
         if (console != null) {
             console.close(false);
+        }
+    }
+
+    static class SshAgentLoader {
+        static SshAgent load(BundleContext bundleContext) {
+            try {
+                SshAgent agent = new AgentImpl();
+                URL url = bundleContext.getBundle().getResource("karaf.key");
+                InputStream is = url.openStream();
+                ObjectInputStream r = new ObjectInputStream(is);
+                KeyPair keyPair = (KeyPair) r.readObject();
+                agent.addIdentity(keyPair, "karaf");
+                return agent;
+            } catch (Throwable e) {
+                LOGGER.warn("Error starting ssh agent for local console", e);
+                return null;
+            }
         }
     }
 

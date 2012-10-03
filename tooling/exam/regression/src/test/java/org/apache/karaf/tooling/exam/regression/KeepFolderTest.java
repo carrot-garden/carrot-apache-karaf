@@ -17,13 +17,13 @@
 
 package org.apache.karaf.tooling.exam.regression;
 
-import static junit.framework.Assert.assertTrue;
 import static org.apache.karaf.tooling.exam.options.KarafDistributionOption.karafDistributionConfiguration;
 import static org.apache.karaf.tooling.exam.options.KarafDistributionOption.keepRuntimeFolder;
 import static org.ops4j.pax.exam.CoreOptions.maven;
 
 import java.io.File;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Option;
@@ -36,6 +36,8 @@ import org.ops4j.pax.exam.spi.reactors.AllConfinedStagedReactorFactory;
 @ExamReactorStrategy(AllConfinedStagedReactorFactory.class)
 public class KeepFolderTest {
 
+    private File runtimeFolder;
+
     @Configuration
     public Option[] config() {
         return new Option[]{
@@ -46,33 +48,9 @@ public class KeepFolderTest {
 
     @Test
     public void test() throws Exception {
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        assertTrue(true);
+        runtimeFolder = new File(".").getAbsoluteFile().getParentFile();
+        Assert.assertTrue("Runtime folder should exist while test runs", runtimeFolder.exists());
+        System.out.println("Please check manually that the folder " + runtimeFolder.getAbsolutePath() + " still exists after this test");
     }
-
-    @Test
-    public void test2() throws Exception {
-        System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXxx");
-        System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXxx");
-        System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXxx");
-        System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXxx");
-        System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXxx");
-        System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXxx");
-        System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXxx");
-        System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXxx");
-        System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXxx");
-        System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXxx");
-        System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXxx");
-        assertTrue(true);
-    }
+    
 }

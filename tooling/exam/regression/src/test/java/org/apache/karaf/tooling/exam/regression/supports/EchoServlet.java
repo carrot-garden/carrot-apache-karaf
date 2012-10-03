@@ -26,9 +26,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-public class MyServlet extends HttpServlet {
+public class EchoServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1068664967007496710L;
+    public static final String ALIAS = "/test/services";
 
     // now we just send a echo response back
     @Override

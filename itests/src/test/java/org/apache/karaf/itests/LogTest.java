@@ -13,28 +13,31 @@
  */
 package org.apache.karaf.itests;
 
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.ops4j.pax.exam.junit.ExamReactorStrategy;
-import org.ops4j.pax.exam.junit.JUnit4TestRunner;
-import org.ops4j.pax.exam.spi.reactors.AllConfinedStagedReactorFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import javax.management.Attribute;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.ops4j.pax.exam.junit.ExamReactorStrategy;
+import org.ops4j.pax.exam.junit.JUnit4TestRunner;
+import org.ops4j.pax.exam.spi.reactors.AllConfinedStagedReactorFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RunWith(JUnit4TestRunner.class)
 @ExamReactorStrategy(AllConfinedStagedReactorFactory.class)
 public class LogTest extends KarafTestSupport {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LogTest.class);
 
     @Test
     public void setDebugAndDisplay() throws Exception {
         System.out.println(executeCommand("log:set DEBUG"));
+        LOGGER.debug("Making sure there is DEBUG level output");
         String displayOutput = executeCommand("log:display");
         System.out.println(displayOutput);
         assertTrue(displayOutput.contains("DEBUG"));

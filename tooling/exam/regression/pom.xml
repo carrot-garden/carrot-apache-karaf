@@ -52,6 +52,12 @@
             <type>zip</type>
             <scope>test</scope>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.karaf</groupId>
+                    <artifactId>org.apache.karaf.client</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.karaf</groupId>
@@ -59,6 +65,12 @@
             <type>tar.gz</type>
             <scope>test</scope>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.karaf</groupId>
+                    <artifactId>org.apache.karaf.client</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.karaf.features</groupId>
@@ -70,6 +82,11 @@
         <dependency>
             <groupId>org.apache.karaf.features</groupId>
             <artifactId>org.apache.karaf.features.core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.karaf.system</groupId>
+            <artifactId>org.apache.karaf.system.core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -95,6 +112,11 @@
             <groupId>${servlet.spec.groupId}</groupId>
             <artifactId>${servlet.spec.artifactId}</artifactId>
             <version>${servlet.spec.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.ops4j.pax.web</groupId>
+            <artifactId>pax-web-spi</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

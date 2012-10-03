@@ -17,10 +17,12 @@
 
 package org.apache.karaf.tooling.exam.regression;
 
-import static junit.framework.Assert.assertTrue;
 import static org.apache.karaf.tooling.exam.options.KarafDistributionOption.karafDistributionConfiguration;
 import static org.ops4j.pax.exam.CoreOptions.maven;
 
+import java.io.File;
+
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Option;
@@ -29,33 +31,27 @@ import org.ops4j.pax.exam.junit.ExamReactorStrategy;
 import org.ops4j.pax.exam.junit.JUnit4TestRunner;
 import org.ops4j.pax.exam.spi.reactors.AllConfinedStagedReactorFactory;
 
-/**
- * This test should validate if the versionAsInProject tags work as expected.
- */
 @RunWith(JUnit4TestRunner.class)
 @ExamReactorStrategy(AllConfinedStagedReactorFactory.class)
-public class VersionAsInProjectKarafTest {
+public class RemoveRuntimeFolderTest {
+
+    private static File runtimeFolder;
 
     @Configuration
     public Option[] config() {
-        return new Option[]{ karafDistributionConfiguration().frameworkUrl(
-            maven().groupId("org.apache.karaf").artifactId("apache-karaf").type("zip").versionAsInProject()) };
+        return new Option[]{
+            karafDistributionConfiguration().frameworkUrl(
+                maven().groupId("org.apache.karaf").artifactId("apache-karaf").type("zip")
+                    .versionAsInProject())
+                    // unpackDirectory seems to be necessary to make sure the working directory is set like we use below
+                    .unpackDirectory(new File("target/paxexam/unpack/")) };
     }
 
     @Test
     public void test() throws Exception {
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        System.out.println("===========================================");
-        assertTrue(true);
+        runtimeFolder = new File(".").getAbsoluteFile().getParentFile();
+        Assert.assertTrue("Runtime folder should exist while test runs", runtimeFolder.exists());
+        System.out.println("Please check manually that the folder " + runtimeFolder.getAbsolutePath() + " is deleted after this test");
     }
 
 }
