@@ -13,44 +13,33 @@
  */
 package org.apache.karaf.itests;
 
-import static org.junit.Assert.assertTrue;
-
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
-import javax.management.openmbean.TabularData;
 import javax.management.remote.JMXConnector;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.junit.ExamReactorStrategy;
 import org.ops4j.pax.exam.junit.JUnit4TestRunner;
-import org.ops4j.pax.exam.spi.reactors.EagerSingleStagedReactorFactory;
+import org.ops4j.pax.exam.spi.reactors.AllConfinedStagedReactorFactory;
 
 @RunWith(JUnit4TestRunner.class)
-@ExamReactorStrategy(EagerSingleStagedReactorFactory.class)
-public class HttpTest extends KarafTestSupport {
+@ExamReactorStrategy(AllConfinedStagedReactorFactory.class)
+public class SystemShutdownTest extends KarafTestSupport {
 
-    @Before
-    public void installHttpFeature() {
-        System.out.println(executeCommand("feature:install http"));
-        System.out.println(executeCommand("feature:install webconsole"));
+    @Test
+    public void shutdownCommand() throws Exception {
+        System.out.println(executeCommand("system:shutdown -f"));
     }
 
     @Test
-    public void list() throws Exception {
-        assertContains("/system/console", executeCommand("http:list"));
-    }
-
-    @Test
-    public void listViaMBean() throws Exception {
+    public void shutdownViaMBean() throws Exception {
         JMXConnector connector = null;
         try {
             connector = this.getJMXConnector();
             MBeanServerConnection connection = connector.getMBeanServerConnection();
-            ObjectName name = new ObjectName("org.apache.karaf:type=http,name=root");
-            TabularData servlets = (TabularData) connection.getAttribute(name, "Servlets");
-            assertTrue(servlets.size() > 0);
+            ObjectName name = new ObjectName("org.apache.karaf:type=system,name=root");
+            connection.invoke(name, "halt", new Object[]{}, new String[]{});
         } finally {
             if (connector != null)
                 connector.close();

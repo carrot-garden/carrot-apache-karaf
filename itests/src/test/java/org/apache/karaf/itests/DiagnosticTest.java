@@ -13,27 +13,23 @@
  */
 package org.apache.karaf.itests;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.ops4j.pax.exam.junit.ExamReactorStrategy;
-import org.ops4j.pax.exam.junit.JUnit4TestRunner;
-import org.ops4j.pax.exam.spi.reactors.AllConfinedStagedReactorFactory;
-
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.ops4j.pax.exam.junit.ExamReactorStrategy;
+import org.ops4j.pax.exam.junit.JUnit4TestRunner;
+import org.ops4j.pax.exam.spi.reactors.EagerSingleStagedReactorFactory;
 
 @RunWith(JUnit4TestRunner.class)
-@ExamReactorStrategy(AllConfinedStagedReactorFactory.class)
+@ExamReactorStrategy(EagerSingleStagedReactorFactory.class)
 public class DiagnosticTest extends KarafTestSupport {
 
     @Test
     public void dumpCreateCommand() throws Exception {
-        String dumpCreateOutput = executeCommand("dev:dump-create");
-        System.out.println(dumpCreateOutput);
-        assertTrue(dumpCreateOutput.contains("Diagnostic dump created."));
+        assertContains("Diagnostic dump created.", executeCommand("dev:dump-create"));
     }
 
     @Test

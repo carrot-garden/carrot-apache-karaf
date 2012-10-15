@@ -13,22 +13,23 @@
  */
 package org.apache.karaf.itests;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.ops4j.pax.exam.junit.ExamReactorStrategy;
-import org.ops4j.pax.exam.junit.JUnit4TestRunner;
-import org.ops4j.pax.exam.spi.reactors.AllConfinedStagedReactorFactory;
+import static org.junit.Assert.assertEquals;
 
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.ops4j.pax.exam.junit.ExamReactorStrategy;
+import org.ops4j.pax.exam.junit.JUnit4TestRunner;
+import org.ops4j.pax.exam.spi.reactors.EagerSingleStagedReactorFactory;
 
 @RunWith(JUnit4TestRunner.class)
-@ExamReactorStrategy(AllConfinedStagedReactorFactory.class)
+@ExamReactorStrategy(EagerSingleStagedReactorFactory.class)
 public class SystemTest extends KarafTestSupport {
+
+    private static final String KARAF_VERSION = "3";
 
     @Test
     public void nameCommand() throws Exception {
@@ -54,9 +55,7 @@ public class SystemTest extends KarafTestSupport {
 
     @Test
     public void versionCommand() throws Exception {
-        String versionOutput = executeCommand("system:version");
-        System.out.println(versionOutput);
-        assertTrue(versionOutput.contains("3"));
+        assertContains(KARAF_VERSION, executeCommand("system:version"));
     }
 
     @Test
@@ -66,8 +65,7 @@ public class SystemTest extends KarafTestSupport {
             connector = this.getJMXConnector();
             MBeanServerConnection connection = connector.getMBeanServerConnection();
             ObjectName name = new ObjectName("org.apache.karaf:type=system,name=root");
-            String version = (String) connection.getAttribute(name, "Version");
-            assertTrue(version.contains("3"));
+            assertContains(KARAF_VERSION, (String) connection.getAttribute(name, "Version"));
         } finally {
             if (connector != null)
                 connector.close();
@@ -76,9 +74,7 @@ public class SystemTest extends KarafTestSupport {
 
     @Test
     public void frameworkCommand() throws Exception {
-        String frameworkOutput = executeCommand("system:framework");
-        System.out.println(frameworkOutput);
-        assertTrue(frameworkOutput.contains("felix"));
+        assertContains("felix", executeCommand("system:framework"));
     }
 
     @Test
@@ -98,9 +94,7 @@ public class SystemTest extends KarafTestSupport {
 
     @Test
     public void startLevelCommand() throws Exception {
-        String startLevelOutput = executeCommand("system:start-level");
-        System.out.println(startLevelOutput);
-        assertTrue(startLevelOutput.contains("100"));
+        assertContains("100", executeCommand("system:start-level"));
     }
 
     @Test
@@ -112,25 +106,6 @@ public class SystemTest extends KarafTestSupport {
             ObjectName name = new ObjectName("org.apache.karaf:type=system,name=root");
             int startLevel = (Integer) connection.getAttribute(name, "StartLevel");
             assertEquals(100, startLevel);
-        } finally {
-            if (connector != null)
-                connector.close();
-        }
-    }
-
-    @Test
-    public void shutdownCommand() throws Exception {
-        System.out.println(executeCommand("system:shutdown -f"));
-    }
-
-    @Test
-    public void shutdownViaMBean() throws Exception {
-        JMXConnector connector = null;
-        try {
-            connector = this.getJMXConnector();
-            MBeanServerConnection connection = connector.getMBeanServerConnection();
-            ObjectName name = new ObjectName("org.apache.karaf:type=system,name=root");
-            connection.invoke(name, "halt", new Object[]{}, new String[]{});
         } finally {
             if (connector != null)
                 connector.close();
