@@ -73,14 +73,14 @@
 
         <!-- 4.2.0 is needed in order to have aries util work correctly within pojosr -->
         <dependency>
-            <groupId>org.osgi</groupId>
+            <groupId>${osgi.groupId}</groupId>
             <artifactId>org.osgi.core</artifactId>
-            <version>4.2.0</version>
+            <version>4.3.1</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.osgi</groupId>
+            <groupId>${osgi.groupId}</groupId>
             <artifactId>org.osgi.compendium</artifactId>
             <scope>test</scope>
         </dependency>

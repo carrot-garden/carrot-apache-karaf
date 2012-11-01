@@ -28,7 +28,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>org.apache.karaf.osgi</groupId>
+    <groupId>${osgi.groupId}</groupId>
     <artifactId>osgi</artifactId>
     <packaging>pom</packaging>
     <name>Apache Karaf :: OSGi</name>
