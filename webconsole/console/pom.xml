@@ -120,24 +120,28 @@
                             org.apache.felix.webconsole.internal.KarafOsgiManagerActivator
                         </Bundle-Activator>
                         <Export-Package>
-                            org.apache.felix.webconsole;version=${felix.webconsole.version}
+                            org.apache.felix.webconsole
                         </Export-Package>
                         <Private-Package>
                             !org.apache.felix.webconsole,
                             org.apache.felix.webconsole.*;-split-package:=merge-first
                         </Private-Package>
                         <Import-Package>
-                            org.apache.felix.scr;version=1.0;resolution:=optional,
-                            org.osgi.service.http,
-                            org.apache.felix.shell;
-                            org.osgi.service.*;resolution:=optional,
+                            org.osgi.service.metatype;resolution:=optional,
+                            org.osgi.service.prefs;resolution:=optional,
                             javax.portlet;resolution:=optional,
-                            javax.servlet.*;version=2.4,
+                            javax.servlet.*,
                             *
                         </Import-Package>
                         <DynamicImport-Package>
                             org.apache.felix.bundlerepository,
-                            org.osgi.service.obr
+                            org.osgi.service.obr,
+                            org.osgi.service.cm,
+                            org.osgi.service.condpermadmin,
+                            org.osgi.service.log,
+                            org.osgi.service.metatype,
+                            org.osgi.service.permissionadmin,
+                            org.osgi.service.wireadmin
                         </DynamicImport-Package>
                         <Embed-Dependency>
                             <!-- Webconsole -->
@@ -154,7 +158,7 @@
                             <!-- Required for JSON data transfer -->
                             json,
 
-                            <!-- File Upload functionality -->
+                            <!-- File Upload -->
                             commons-fileupload,
 
                             <!-- Required by FileUpload and Util -->
